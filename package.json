@@ -1,0 +1,23 @@
+{
+  "name": "scrapper",
+  "version": "1.0.0",
+  "description": "FYP Scrapper",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saud-butt/scraper.git"
+  },
+  "author": "saud",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/saud-butt/scraper/issues"
+  },
+  "homepage": "https://github.com/saud-butt/scraper#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^5.6.10"
+  }
+}
