@@ -17,7 +17,9 @@
   },
   "homepage": "https://github.com/saud-butt/scraper#readme",
   "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
     "express": "^4.17.1",
-    "mongoose": "^5.6.10"
+    "mongoose": "^5.6.10",
+    "puppeteer": "^1.19.0"
   }
 }
