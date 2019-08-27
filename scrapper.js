@@ -27,7 +27,14 @@ const url =
     await page.goto(`${link}/Specification`);
     await page.waitFor(1000);
     const html = await page.evaluate(() => document.body.innerHTML);
-    productDetails = [...productDetails, ...(await getProductDetails(html))];
+    productDetails = [
+      ...productDetails,
+      ...(await getProductDetails(html, link))
+    ];
+    await page.goto(`${link}/Gallery`);
+    await page.waitFor(1000);
+    const gallery = await page.evaluate(() => document.body.innerHTML);
+    productDetails = await getGallery(gallery, link, productDetails);
   }
   console.log("Objects", productDetails);
   console.log("Count", productDetails.length);
@@ -61,7 +68,7 @@ async function getProductionLinks(html) {
   return links;
 }
 
-async function getProductDetails(html) {
+async function getProductDetails(html, link) {
   const obj = [];
   const $ = cheerio.load(html);
   const ths = $("thead")
@@ -69,6 +76,7 @@ async function getProductDetails(html) {
     .find("td:not(.info)");
   ths.each(function(index, td) {
     obj.push({
+      link,
       model: $(td)
         .text()
         .trim()
@@ -92,4 +100,20 @@ async function getProductDetails(html) {
     });
   });
   return obj;
+}
+
+async function getGallery(html, link, productDetails) {
+  // Extract img links from page
+  // Define all variables and convert $.each to collection.each
+  // Find object where link matches and key gallery with value of extracted img array
+  // Reference -> search javascript method .filter
+
+  const links = [];
+  const $ = cheerio.load(html);
+  const lk = $(".img-responsive");
+  lk.each(function(index, img) {
+    links.push(img.src);
+  });
+
+  return links;
 }
