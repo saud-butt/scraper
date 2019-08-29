@@ -80,6 +80,8 @@ async function getProductionLinks(html) {
 async function getProductDetails(html, link) {
   const obj = [];
   const $ = cheerio.load(html);
+
+  // Get model name
   const ths = $("thead")
     .find("tr")
     .find("td:not(.info)");
@@ -92,6 +94,8 @@ async function getProductDetails(html, link) {
         .trim()
     });
   });
+
+  //
   const tr = $("tbody").find("tr");
   tr.each(function(index, element) {
     const tds = $(element).find("td");

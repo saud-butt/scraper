@@ -29,13 +29,16 @@ const url = [
     let productDetails = [];
     for (let link of obj) {
       await page.goto(link);
+      // await page.click("dt.last span");
       //   await page.waitFor(1000);
+      // const html = await page.evaluate(() => document.body.innerHTML);
       productDetails = [
         ...productDetails,
         ...(await getProductDetails(html, link))
       ];
     }
   }
+  console.log(productDetails);
   console.log("Count", productDetails.length);
   await browser.close();
 })();
@@ -57,6 +60,8 @@ async function getLinks(html) {
 async function getProductDetails(html, link) {
   const obj = [];
   const $ = cheerio.load(html);
+
+  // Get model name
   const span = $("span.h1");
   span.each(function(index, h1) {
     obj.push({
@@ -67,25 +72,33 @@ async function getProductDetails(html, link) {
         .trim()
     });
   });
-  const tr = $("tbody").find("tr");
+
+  // Get info (Key->th:value->td)
+  const tr = $("tbody").find("tr"); //document.body.querySelectorAll("tbody > tr");
   tr.each(function(index, element) {
-    const ths = $(element).find("th.label");
-    ths.each(function(index, th) {
-      const text = $(th).text();
-      const key = text
-        .toLocaleLowerCase()
-        .trim()
-        .replace("(", "")
-        .replace(")", "")
-        .replace("/", "")
-        .split(" ")
-        .join("_");
-      obj[index][key] = $(th)
-        .text()
-        .replace(text, "")
-        .trim();
-    });
+    const td = $(element).find("td.data"); //document.body.querySelector(`${element} > td.data`);
+    const th = $(element).find("th.label"); //document.body.querySelector(`${element} > th.label`);
+    const text = $(th).text();
+    const key = text
+      .toLowerCase()
+      .trim()
+      .replace("(", "")
+      .replace(")", "")
+      .replace("/", "")
+      .split(" ")
+      .join("_");
+    obj[index][key] = $(td)
+      .text()
+      .replace(text, "")
+      .trim();
   });
-  console.log(productDetails);
+
+  // Get images
+  const img = [];
+  $("img.gallery-image").each(function() {
+    img.push($(this).attr("src"));
+  });
+  obj[index][gallery] = img;
+
   return obj;
 }
