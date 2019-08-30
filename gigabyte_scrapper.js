@@ -4,71 +4,68 @@ const mongoose = require("mongoose");
 const mongoDBUrl = require("./config/keys_dev").mongoURI;
 const Product = require("./model/product");
 
-const url =
-  "https://www.msi.com/Laptop/Products#?tag_multi_select=579,580,581,582,583,2011";
+const url = [
+  "https://www.gigabyte.com/Laptop#AERO-series"
+  // "https://www.gigabyte.com/Laptop#All-Laptop"
+];
 
 // Main function
 (async () => {
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
-  await page.goto(url);
+
   let obj = [];
-  let hasNextPage = true;
-  while (hasNextPage) {
-    await page.waitFor(1000);
-    const pageDetail = await prepareNextPage(page);
-    hasNextPage = pageDetail.hasNextPage;
-    const pageLinks = await getProductLinks(pageDetail.html);
-    obj = [...obj, ...pageLinks];
-    if (hasNextPage) {
-      await page.click(
-        `#mainbox2 > ul.pagination > li:not(.last_li):nth-child(${pageDetail.nextLinkIndex}) > a`
-      );
-    }
-  }
   let productDetails = [];
+  // for (let link of url) {
+  // await page.goto(link);
+  // await page.waitFor(1000);
+  // const html = await page.evaluate(() => document.body.innerHTML);
+  // const pageLinks = await getProductLinks(html);
+  const pageLinks = [
+    "https://www.gigabyte.com/Laptop/AERO-17-HDR--Intel-9th-Gen",
+    "https://www.gigabyte.com/Laptop/Sabre-15-G8"
+  ];
+  obj = [...obj, ...pageLinks];
   for (let link of obj) {
-    await page.goto(`${link}/Specification`);
+    await page.goto(link);
+    // await page.waitFor(1000);
+    // await page.evaluate(() => document.body.innerHTML);
+    // const images = [];
+    // const $ = cheerio.load(html);
+    // $(".gallery-list-item").each(function() {
+    //   images.push(
+    //     $(this)
+    //       .find("img")
+    //       .attr("src")
+    //   );
+    // });
+
+    // productDetails.gallery = images;
+
+    await page.goto(`${link}/sp#sp`);
     await page.waitFor(1000);
     const html = await page.evaluate(() => document.body.innerHTML);
     productDetails = [
       ...productDetails,
       ...(await getProductDetails(html, link))
     ];
-    await page.goto(`${link}/Gallery`);
-    await page.waitFor(1000);
-    const gallery = await page.evaluate(() => document.body.innerHTML);
-    productDetails = await getGallery(gallery, link, productDetails);
+    console.log(productDetails);
   }
-  await saveObject(productDetails);
+  // await saveObject(productDetails);
+  //console.log(productDetails);
   console.log("Count", productDetails.length);
+  //}
+
   await browser.close();
 })();
 
-// Get the next page ready to open
-async function prepareNextPage(page) {
-  return page.evaluate(() => {
-    const nodes = document.body
-      .querySelector(".pagination")
-      .querySelectorAll("li:not(.last_li)");
-    const nextLinkIndex = nodes.length;
-    const nextLink = nodes[nextLinkIndex - 1];
-    return {
-      hasNextPage: !nextLink.classList.value.includes("active"),
-      html: document.body.querySelector("#product_box_list").innerHTML,
-      nextLinkIndex
-    };
-  });
-}
-
-// Get links of all the laptops on site
 async function getProductLinks(html) {
   const links = [];
   const $ = cheerio.load(html);
-  $("a.productcard-link").each(function() {
+  $(".product-box-head").each(function() {
     const link = $(this).attr("href");
     if (!links.includes(link)) {
-      links.push($(this).attr("href"));
+      links.push(`https://www.gigabyte.com${link}`);
     }
   });
   return links;
@@ -79,59 +76,34 @@ async function getProductDetails(html, link) {
   const obj = [];
   const $ = cheerio.load(html);
 
-  // Get model name
-  const ths = $("thead")
-    .find("tr")
-    .find("td:not(.info)");
-  ths.each(function(index, td) {
-    obj.push({
-      brand: "msi",
+  $(".childModel").each(function() {
+    const detail = {
+      brand: "gigabyte",
       link,
-      model: $(td)
+      model: $(".name")
         .text()
         .trim()
-    });
-  });
-
-  const tr = $("tbody").find("tr");
-  tr.each(function(index, element) {
-    const tds = $(element).find("td");
-    tds.each(function(index, td) {
-      const span = $(td).find("span");
-      const text = span.text();
-      const key = text
+    };
+    const data = $(".specRow");
+    data.each(function(index, element) {
+      const specTitle = $(element)
+        .find(".specTitle")
+        .text();
+      const specDescription = $(element)
+        .find(".specText:not(.specTitle)")
+        .text()
+        .trim();
+      const key = specTitle
         .toLowerCase()
         .trim()
-        .replace("(", "")
-        .replace(")", "")
-        .replace("&", "")
         .replace("/", "")
         .split(" ")
         .join("_");
-      obj[index][key] = $(td)
-        .text()
-        .replace(text, "")
-        .trim();
+      detail[key] = specDescription;
     });
   });
+
   return obj;
-}
-
-// Get image links
-async function getGallery(html, link, productDetails) {
-  const images = [];
-  const $ = cheerio.load(html);
-  $(".img-responsive").each(function() {
-    images.push($(this).attr("src"));
-  });
-
-  productDetails.filter(productDetail => {
-    if (link === productDetail.link) {
-      productDetail.gallery = images;
-      return true;
-    }
-  });
-  return productDetails;
 }
 
 // Send Data to Data-Base

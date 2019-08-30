@@ -13,25 +13,40 @@ const productSchema = new Schema({
     type: String
   },
   dimension: {
-    type: String
+    height: { type: String },
+    width: { type: String },
+    depth: { type: String }
   },
   weight: {
     type: String
   },
   os: {
-    type: String
+    operating_system: { type: String },
+    operating_system_architecture: { type: String }
   },
   display: {
-    type: String
+    size: { type: String },
+    type: { type: String },
+    technology: { type: String },
+    mode: { type: String },
+    resolution: { type: String }
   },
   processor: {
-    type: String
+    processor_type: { type: String },
+    processor_model: { type: String },
+    processor_core: { type: String },
+    processor_speed: { type: String },
+    processor_speed_turbo: { type: String }
   },
   chipset: {
     type: String
   },
   graphics: {
-    type: String
+    manufacturer: { type: String },
+    model: { type: String },
+    capacity: { type: String },
+    technology: { type: String },
+    accessibility: { type: String }
   },
   memory: {
     memory_type: { type: String },
@@ -56,7 +71,7 @@ const productSchema = new Schema({
     type: String
   },
 
-  fingerprint: {
+  security: {
     type: String
   },
   speakers: {
@@ -70,7 +85,8 @@ const productSchema = new Schema({
     type: String
   },
   wireless: {
-    type: String
+    wifi: { type: String },
+    bluetooth: { type: String }
   },
   battery: {
     cell: { type: String },
