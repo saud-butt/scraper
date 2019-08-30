@@ -27,7 +27,7 @@ const url = [
   ];
   obj = [...obj, ...pageLinks];
   for (let link of obj) {
-    await page.goto(link);
+    await page.goto(`${link}/gallery#gallery`);
     // await page.waitFor(1000);
     // await page.evaluate(() => document.body.innerHTML);
     // const images = [];
