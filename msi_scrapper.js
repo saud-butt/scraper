@@ -76,7 +76,7 @@ async function getProductLinks(html) {
 
 // Get product details and save as array of objects
 async function getProductDetails(html, link) {
-  const obj = [];
+  const details = [];
   const $ = cheerio.load(html);
 
   // Get model name
@@ -84,9 +84,10 @@ async function getProductDetails(html, link) {
     .find("tr")
     .find("td:not(.info)");
   ths.each(function(index, td) {
-    obj.push({
+    details.push({
       brand: "msi",
       link,
+      category: "gaming",
       model: $(td)
         .text()
         .trim()
@@ -108,13 +109,13 @@ async function getProductDetails(html, link) {
         .replace("/", "")
         .split(" ")
         .join("_");
-      obj[index][key] = $(td)
+      details[index][key] = $(td)
         .text()
         .replace(text, "")
         .trim();
     });
   });
-  return obj;
+  return details;
 }
 
 // Get image links
@@ -174,6 +175,7 @@ async function saveObject(productDetails) {
         };
 
         const product = new Product({
+          category: productDetail.category,
           brand: productDetail.brand,
           name: productDetail.model,
           ports,

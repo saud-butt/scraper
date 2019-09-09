@@ -5,12 +5,12 @@ const mongoDBUrl = require("./config/keys_dev").mongoURI;
 const Product = require("./model/product");
 
 const url = [
-  "https://us-store.acer.com/laptops/gaming?limit=25"
-  // "https://us-store.acer.com/laptops/ultra-thin?limit=25",
-  // "https://us-store.acer.com/laptops/convertible?limit=25",
-  // "https://us-store.acer.com/laptops/detachable?limit=25",
-  // "https://us-store.acer.com/laptops/chromebook?limit=25",
-  // "https://us-store.acer.com/laptops/classic?limit=25"
+  "https://us-store.acer.com/laptops/gaming?limit=25",
+  "https://us-store.acer.com/laptops/ultra-thin?limit=25",
+  "https://us-store.acer.com/laptops/convertible?limit=25",
+  "https://us-store.acer.com/laptops/detachable?limit=25",
+  "https://us-store.acer.com/laptops/chromebook?limit=25",
+  "https://us-store.acer.com/laptops/classic?limit=25"
 ];
 
 (async () => {
@@ -22,12 +22,7 @@ const url = [
     await page.goto(link);
     await page.waitFor(1000);
     const html = await page.evaluate(() => document.body.innerHTML);
-    //  const pageLinks = await getLinks(html);
-
-    const pageLinks = [
-      "https://us-store.acer.com/laptops/gaming/nitro-7-gaming-laptop-an715-51-70tg",
-      "https://us-store.acer.com/laptops/gaming/predator-helios-300-ph315-51-785a"
-    ];
+    const pageLinks = await getLinks(html);
 
     obj = [...obj, ...pageLinks];
 
@@ -62,6 +57,7 @@ async function getProductDetails(html, link) {
   const detail = {
     brand: "acer",
     link,
+    category: "work",
     model: $("span.h1")
       .text()
       .trim()
@@ -178,6 +174,7 @@ async function saveDetails(productDetails) {
         };
 
         const product = new Product({
+          category: productDetail.category,
           brand: productDetail.brand,
           name: productDetail.model,
           ports,

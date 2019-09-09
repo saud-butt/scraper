@@ -28,31 +28,27 @@ const url = [
   obj = [...obj, ...pageLinks];
   for (let link of obj) {
     await page.goto(`${link}/gallery#gallery`);
-    // await page.waitFor(1000);
-    // await page.evaluate(() => document.body.innerHTML);
-    // const images = [];
-    // const $ = cheerio.load(html);
-    // $(".gallery-list-item").each(function() {
-    //   images.push(
-    //     $(this)
-    //       .find("img")
-    //       .attr("src")
-    //   );
-    // });
+    await page.waitFor(1000);
+    let html = await page.evaluate(() => document.body.innerHTML);
+    const images = [];
+    const $ = cheerio.load(html);
+    $(".gallery-list-item").each(function() {
+      images.push(
+        $(this)
+          .find("img")
+          .attr("src")
+      );
+    });
 
-    // productDetails.gallery = images;
+    productDetails.gallery = images;
 
     await page.goto(`${link}/sp#sp`);
     await page.waitFor(1000);
-    const html = await page.evaluate(() => document.body.innerHTML);
-    productDetails = [
-      ...productDetails,
-      ...(await getProductDetails(html, link))
-    ];
-    console.log(productDetails);
+    html = await page.evaluate(() => document.body.innerHTML);
+    productDetails = [...productDetails, await getProductDetails(html, link)];
   }
-  // await saveObject(productDetails);
-  //console.log(productDetails);
+  //await saveObject(productDetails);
+  console.log(productDetails);
   console.log("Count", productDetails.length);
   //}
 
@@ -70,40 +66,44 @@ async function getProductLinks(html) {
   });
   return links;
 }
-
 // Get product details and save as array of objects
 async function getProductDetails(html, link) {
-  const obj = [];
   const $ = cheerio.load(html);
-
-  $(".childModel").each(function() {
-    const detail = {
+  const detail = [];
+  const model = $("div.owl-item");
+  model.each(function(index, name) {
+    detail.push({
       brand: "gigabyte",
       link,
-      model: $(".name")
+      model: $(name)
+        .find("div.childModel div.name")
         .text()
         .trim()
-    };
-    const data = $(".specRow");
-    data.each(function(index, element) {
-      const specTitle = $(element)
-        .find(".specTitle")
-        .text();
-      const specDescription = $(element)
-        .find(".specText:not(.specTitle)")
-        .text()
-        .trim();
-      const key = specTitle
-        .toLowerCase()
-        .trim()
-        .replace("/", "")
-        .split(" ")
-        .join("_");
-      detail[key] = specDescription;
+    });
+
+    const col = $(model).find("div.childModel div.specRow");
+    col.each(function(index, element) {
+      const rows = $(element).find(".specText");
+      rows.each(function(index, row) {
+        const specTitle = $(row)
+          .find(".specTitle")
+          .text();
+        const specDescription = $(row)
+          .find("div:last-child")
+          .text()
+          .trim();
+        const key = specTitle
+          .toLowerCase()
+          .trim()
+          .replace("/", "")
+          .split(" ")
+          .join("_");
+        detail[index][key] = specDescription;
+      });
     });
   });
 
-  return obj;
+  return detail;
 }
 
 // Send Data to Data-Base
@@ -116,56 +116,28 @@ async function saveObject(productDetails) {
     })
     .then(() => {
       for (let productDetail of productDetails) {
-        const memory = {
-          memory_type: productDetail.memory_type,
-          no_of_dimm_slots: productDetail.no_of_dimm_slots,
-          max_capacity: productDetail.max_capacity
-        };
-        const storage = {
-          ssd: productDetail.ssd,
-          hdd: productDetail.hdd
-        };
-        const ports = {
-          hdmi: productDetail.hdmi,
-          rj45: productDetail.rj45,
-          card_reader: productDetail.card_reader,
-          mini_display_port: productDetail.mini_display_port,
-          usb: productDetail.usb,
-          lan: productDetail.lan,
-          audio_jack: productDetail.audio_jack,
-          io_ports: productDetail.io_ports
-        };
-        const battery = {
-          cell: productDetail.battery_cell,
-          type: productDetail.battery_type,
-          whr: productDetail.battery_whr
-        };
-        const speakers = {
-          speaker: productDetail.speaker,
-          woofer: productDetail.woofer
-        };
-
         const product = new Product({
           brand: productDetail.brand,
           name: productDetail.model,
-          ports,
-          memory,
-          graphics: productDetail.graphics,
+          ports: productDetail.io_port,
+          memory: productDetail.system_memory,
+          graphics: productDetail.video_graphics,
           os: productDetail.os,
           processor: productDetail.cpu,
           display: productDetail.display,
           chipset: productDetail.chipset,
-          storage,
+          storage: productDetail.storage,
           camera: productDetail.webcam,
-          keyboard: productDetail.keyboard,
-          speakers,
-          ac_power: productDetail.ac_adapter,
-          battery,
-          wireless: productDetail.wireless_lan__bluetooth,
-          weight: productDetail.weight_w_battery,
-          dimensions: productDetail.dimension_wxdxh_mm,
+          keyboard: productDetail.keyboard_type,
+          speakers: productDetail.audio,
+          ac_power: productDetail.adapter,
+          battery: productDetail.battery,
+          wireless: productDetail.communications,
+          weight: productDetail.weight,
+          dimensions: productDetail.dimensions,
           link: productDetail.link,
-          images: productDetail.gallery
+          images: productDetail.gallery,
+          security: productDetail.security
         })
           .save()
           .then(createdProduct => {
