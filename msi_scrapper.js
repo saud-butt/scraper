@@ -176,6 +176,7 @@ async function saveObject(productDetails) {
 
         const product = new Product({
           category: productDetail.category,
+          cover: productDetail.gallery[0],
           brand: productDetail.brand,
           name: productDetail.model,
           ports,

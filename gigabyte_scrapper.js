@@ -5,8 +5,8 @@ const mongoDBUrl = require("./config/keys_dev").mongoURI;
 const Product = require("./model/product");
 
 const url = [
+  "https://www.gigabyte.com/Laptop#All-Laptop",
   "https://www.gigabyte.com/Laptop#AERO-series"
-  // "https://www.gigabyte.com/Laptop#All-Laptop"
 ];
 
 // Main function
@@ -16,42 +16,31 @@ const url = [
 
   let obj = [];
   let productDetails = [];
-  // for (let link of url) {
-  // await page.goto(link);
-  // await page.waitFor(1000);
-  // const html = await page.evaluate(() => document.body.innerHTML);
-  // const pageLinks = await getProductLinks(html);
-  const pageLinks = [
-    "https://www.gigabyte.com/Laptop/AERO-17-HDR--Intel-9th-Gen",
-    "https://www.gigabyte.com/Laptop/Sabre-15-G8"
-  ];
-  obj = [...obj, ...pageLinks];
-  for (let link of obj) {
-    await page.goto(`${link}/gallery#gallery`);
+  for (let links of url) {
+    await page.goto(links);
     await page.waitFor(1000);
-    let html = await page.evaluate(() => document.body.innerHTML);
-    const images = [];
-    const $ = cheerio.load(html);
-    $(".gallery-list-item").each(function() {
-      images.push(
-        $(this)
-          .find("img")
-          .attr("src")
-      );
-    });
+    const html = await page.evaluate(() => document.body.innerHTML);
+    const pageLinks = await getProductLinks(html);
+    // const pageLinks = [
+    //   "https://www.gigabyte.com/Laptop/AERO-17-HDR--Intel-9th-Gen",
+    //   "https://www.gigabyte.com/Laptop/Sabre-15-G8"
+    // ];
+    obj = [...obj, ...pageLinks];
+    for (let link of obj) {
+      await page.goto(link);
+      await page.waitFor(1000);
+      const img = await page.evaluate(() => document.body.innerHTML);
+      productDetails = await getGallery(img, link, productDetails);
+      await page.goto(`${link}/sp#sp`);
+      await page.waitFor(1000);
+      const spec = await page.evaluate(() => document.body.innerHTML);
+      productDetails = [...productDetails, await getProductDetails(spec, link)];
+    }
 
-    productDetails.gallery = images;
-
-    await page.goto(`${link}/sp#sp`);
-    await page.waitFor(1000);
-    html = await page.evaluate(() => document.body.innerHTML);
-    productDetails = [...productDetails, await getProductDetails(html, link)];
+    //console.log(productDetails);
   }
-  //await saveObject(productDetails);
-  console.log(productDetails);
   console.log("Count", productDetails.length);
-  //}
-
+  await saveObject(productDetails);
   await browser.close();
 })();
 
@@ -64,8 +53,36 @@ async function getProductLinks(html) {
       links.push(`https://www.gigabyte.com${link}`);
     }
   });
+  //console.log(links);
   return links;
 }
+
+// Get images
+async function getGallery(html, link, productDetails) {
+  console.log("getting photos");
+  const $ = cheerio.load(html);
+  const images = [];
+  $("div.flex-viewport")
+    .find("ul#gallery-list-ul")
+    .find("li.gallery-list-item")
+    .each(function() {
+      images.push(
+        `https:${$(this)
+          .find("img")
+          .attr("src")}`
+      );
+    });
+  productDetails.filter(productDetail => {
+    if (link === productDetail.link) {
+      productDetail.gallery = images;
+      return true;
+    }
+  });
+  console.log("got photos");
+  console.log(productDetails);
+  return productDetails;
+}
+
 // Get product details and save as array of objects
 async function getProductDetails(html, link) {
   const $ = cheerio.load(html);
@@ -75,6 +92,7 @@ async function getProductDetails(html, link) {
     detail.push({
       brand: "gigabyte",
       link,
+      category: "gaming",
       model: $(name)
         .find("div.childModel div.name")
         .text()
@@ -119,6 +137,7 @@ async function saveObject(productDetails) {
         const product = new Product({
           brand: productDetail.brand,
           name: productDetail.model,
+          cover: productDetail.gallery[0],
           ports: productDetail.io_port,
           memory: productDetail.system_memory,
           graphics: productDetail.video_graphics,

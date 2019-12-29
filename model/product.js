@@ -5,6 +5,9 @@ const productSchema = new Schema({
   category: {
     type: String
   },
+  cover: {
+    type: String
+  },
   brand: {
     type: String
   },
@@ -15,7 +18,7 @@ const productSchema = new Schema({
   name: {
     type: String
   },
-  dimension: {
+  dimensions: {
     height: { type: String },
     width: { type: String },
     depth: { type: String }
@@ -52,7 +55,8 @@ const productSchema = new Schema({
     accessibility: { type: String }
   },
   memory: {
-    memory_type: { type: String },
+    memory: { type: String },
+    type: { type: String },
     no_of_dimm_slots: { type: String },
     max_capacity: { type: String }
   },
@@ -65,7 +69,9 @@ const productSchema = new Schema({
     rj45: { type: String },
     card_reader: { type: String },
     mini_display_port: { type: String },
-    usb: { type: String },
+    usb_2_0: { type: String },
+    usb_3_0: { type: String },
+    usb_3_1: { type: String },
     lan: { type: String },
     audio_jacks: { type: String },
     io_ports: { type: String }
@@ -79,7 +85,8 @@ const productSchema = new Schema({
   },
   speakers: {
     speaker: { type: String },
-    woofer: { type: String }
+    woofer: { type: String },
+    output: { type: String }
   },
   camera: {
     type: String
@@ -94,7 +101,9 @@ const productSchema = new Schema({
   battery: {
     cell: { type: String },
     type: { type: String },
-    whr: { type: String }
+    whr: { type: String },
+    capacity: { type: String },
+    run_time: { type: String }
   },
   ac_power: {
     type: String

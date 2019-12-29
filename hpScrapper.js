@@ -4,18 +4,30 @@ const mongoose = require("mongoose");
 const mongoDBUrl = require("./config/keys_dev").mongoURI;
 const Product = require("./model/product");
 
-const url = "https://www.lenovo.com/pk/en/laptops/c/Laptops";
+// const url =[
+//   "https://pricebaba.com/laptop/pricelist/razer-laptop-price-list-in-india",
+//"https://pricebaba.com/laptop/pricelist/hp-laptops?brand=BRND-HP&limit=40&active=true&status=10&status=20&status=30&start=0&sort=latest-desc&page=2",
+//"https://pricebaba.com/laptop/pricelist/asus-laptops?brand=BRND-ASUS&active=true&status=10&status=20&status=30&sort=latest-desc&&page=2"
+//""https://pricebaba.com/laptop/pricelist/2-in-1-laptops?page=2"
+//""https://pricebaba.com/laptop/pricelist/gigabyte-laptop-price-list-in-india"
+//"https://pricebaba.com/laptop/pricelist/gigabyte-laptop-price-list-in-india?brand=BRND-APPLE&brand=BRND-GIGABYTE&active=true&status=10&status=20&status=30&sort=popularity-desc&start=0&limit=40"
+//];
+
 (async () => {
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
-  await page.goto(url);
+  //for (let i = 2; i < 12; i++) {
+  await page.goto(
+    "https://pricebaba.com/laptop/pricelist/gigabyte-laptop-price-list-in-india?brand=BRND-APPLE&brand=BRND-GIGABYTE&active=true&status=10&status=20&status=30&sort=popularity-desc&page=2"
+  );
   const html = await page.evaluate(() => document.body.innerHTML);
   const pageLinks = await getLinks(html);
 
-  // const pageLinks = [
-  //   "https://www.lenovo.com/pk/en/laptops/ideapad/l-series/IdeaPad-L340-17IRH-Gaming/p/88IPL301162",
-  //   "https://www.lenovo.com/pk/en/laptops/legion-laptops/legion-y-series/Lenovo-Legion-Y530-15ICH/p/88GMY501020"
-  // ];
+  //   const pageLinks = [
+  //     "https://pricebaba.com/laptop/hp-15-db1061au-8vy90pa-ryzen-5-4gb-1tb-hdd-windows",
+
+  //     "https://pricebaba.com/laptop/hp-15-db0244au-7wr12pa-amd-a9-apu-4gb-1tb-hdd-windows"
+  //   ];
 
   let productDetails = [];
 
@@ -27,24 +39,30 @@ const url = "https://www.lenovo.com/pk/en/laptops/c/Laptops";
       ...productDetails,
       await getProductDetails(page, html, link)
     ];
-    await page.goto(`${link}/gallery/image`);
+    await page.goto(`${link}#showLargeGallery`);
     await page.waitFor(1000);
     const gallery = await page.evaluate(() => document.body.innerHTML);
     productDetails = await getGallery(gallery, link, productDetails);
   }
 
+  //console.log(pageLinks);
+  //console.log("count = " + pageLinks.length);
   //console.log(productDetails);
   await savedetails(productDetails);
+  // }
   await browser.close();
 })();
 
 async function getLinks(html) {
   const links = [];
   const $ = cheerio.load(html);
-  $("a.vam-subseries").each(function() {
-    const link = $(this).attr("href");
+  $("div.col-12.p-h-xs.v-al-top.flt-l").each(function() {
+    const link = $(this)
+      .find("div.col-8.v-al-mdl")
+      .find("a")
+      .attr("href");
     if (!links.includes(link)) {
-      links.push(`https://www.lenovo.com${link}`);
+      links.push(link);
     }
   });
   return links;
@@ -52,61 +70,58 @@ async function getLinks(html) {
 
 async function getProductDetails(page, html, link) {
   const $ = cheerio.load(html);
-  let category;
-  if (
-    link ===
-      "https://www.lenovo.com/pk/en/laptops/legion-laptops/legion-y-series/Lenovo-Legion-Y540-17IRH/p/88GMY501216" ||
-    "https://www.lenovo.com/pk/en/laptops/legion-laptops/legion-y-series/Lenovo-Legion-Y730-15ICH/p/88GMY701058" ||
-    "https://www.lenovo.com/pk/en/laptops/legion-laptops/legion-y-series/Lenovo-Legion-Y530-15ICH/p/88GMY501020"
-  ) {
-    category = "gaming";
-  } else {
-    category = "standard";
-  }
   const details = {
-    brand: "lenovo",
+    brand: "apple",
     link,
-    cover: `https://www.lenovo.com${$(".subSeries-Hero").attr("src")}`,
-    category,
-    model: $("h1.desktopHeader")
+    category: "standard",
+    price: $("span.txt-xl")
       .text()
       .trim()
+      .replace("Rs. ", "")
+      .replace(",", "")
+      .replace(",", ""),
+    model: $("h1.txt-wt-b")
+      .text()
+      .trim(),
+    cover: $("img.gllry__img").attr("data-src")
   };
-  const tr = $("tbody").find("tr");
+  const tr = $("div#keyspecificationsTab")
+    .find("ul.keyspec")
+    .find("li.p-b-m");
   tr.each(function(index, element) {
     const specTitle = $(element)
-      .find("td:first-child")
+      .find("span")
       .text();
     const specDescription = $(element)
-      .find("td:last-child")
+      .find("ul.m-t-s")
       .text()
       .trim();
     const key = specTitle
       .toLowerCase()
       .trim()
-      .replace(".", "")
-      .replace('"', "")
-      .replace("(", "")
-      .replace(")", "")
-      .replace("®", "")
-      .replace("/", "")
+      //   .replace(".", "")
+      //   .replace('"', "")
+      //   .replace("(", "")
+      //   .replace(")", "")
+      //   .replace("®", "")
+      //   .replace("/", "")
       .split(" ")
-      .join("_")
-      .replace("io_input__output_ports", "ports")
-      .replace("io_inputoutput_ports", "ports")
-      .replace("connectivity", "wireless")
-      .replace("total-memeory", "memory")
-      .replace("security_features", "security")
-      .replace("ports__slots", "ports")
-      .replace("colorfinish", "color")
-      .replace("portslots", "ports")
-      .replace("color_options", "color")
-      .replace("dimensions_h_x_w_x_d", "dimensions_w_x_d_x_h")
-      .replace("backlit_keyboard", "keyboard")
-      .replace("webcam", "camera")
-      .replace("camera__webcam", "camera")
-      .replace("audio9", "audio")
-      .replace("wifibluetooth", "wireless");
+      .join("_");
+    //   .replace("io_input__output_ports", "ports")
+    //   .replace("io_inputoutput_ports", "ports")
+    //   .replace("connectivity", "wireless")
+    //   .replace("total-memeory", "memory")
+    //   .replace("security_features", "security")
+    //   .replace("ports__slots", "ports")
+    //   .replace("colorfinish", "color")
+    //   .replace("portslots", "ports")
+    //   .replace("color_options", "color")
+    //   .replace("dimensions_h_x_w_x_d", "dimensions_w_x_d_x_h")
+    //   .replace("backlit_keyboard", "keyboard")
+    //   .replace("webcam", "camera")
+    //   .replace("camera__webcam", "camera")
+    //   .replace("audio9", "audio")
+    //   .replace("wifibluetooth", "wireless");
     details[key] = specDescription;
   });
 
@@ -116,8 +131,8 @@ async function getProductDetails(page, html, link) {
 async function getGallery(html, link, productDetails) {
   const images = [];
   const $ = cheerio.load(html);
-  $("img").each(function() {
-    images.push(`https://www.lenovo.com${$(this).attr("src")}`);
+  $("img.gllry__img").each(function() {
+    images.push($(this).attr("data-src"));
   });
 
   productDetails.filter(productDetail => {
@@ -139,38 +154,29 @@ async function savedetails(productDetails) {
     })
     .then(() => {
       for (let productDetail of productDetails) {
-        const memory = {
-          memory: productDetail.memory
-        };
         const storage = {
           hdd: productDetail.storage
         };
-        const ports = {
-          hdmi: productDetail.ports
-        };
+
         const battery = {
           type: productDetail.battery
         };
         const speakers = {
           speaker: productDetail.audio
         };
-        const dimensions = {
-          height: productDetail.dimension_w_x_d_x_h
-        };
+
         const os = {
-          operating_system: productDetail.operating_system
+          operating_system: productDetail.os
         };
         const display = {
           type: productDetail.display
         };
         const processor = {
-          processor_type: productDetail.processor
+          processor_type: productDetail.performance
         };
-        const graphics = {
-          model: productDetail.graphics
-        };
+
         const wireless = {
-          wifi: productDetail.wlan
+          wifi: productDetail.ports_and_connectivity
         };
 
         const product = new Product({
@@ -178,9 +184,7 @@ async function savedetails(productDetails) {
           brand: productDetail.brand,
           name: productDetail.model,
           cover: productDetail.cover,
-          ports,
-          memory,
-          graphics,
+          price: productDetail.price,
           os,
           processor,
           display,
@@ -189,12 +193,8 @@ async function savedetails(productDetails) {
           speakers,
           battery,
           wireless,
-          weight: productDetail.weight,
-          dimensions,
           link: productDetail.link,
-          images: productDetail.gallery,
-          security: productDetail.security,
-          color: productDetail.color
+          images: productDetail.gallery
         })
           .save()
           .then(createdProduct => {

@@ -22,7 +22,7 @@ const url = "https://www.razer.com/gaming-laptops";
   let links = [];
   let productDetails = [];
 
-  links = [...links, ...pageLink1];
+  //links = [...links, ...pageLink1];
   //   for (let link of links) {
   //     await page.goto(link);
   //     await page.waitFor(1000);
@@ -32,6 +32,7 @@ const url = "https://www.razer.com/gaming-laptops";
   //       ...(await getProductDetails1(html, link))
   //     ];
   //   }
+
   const link = "https://www.razer.com/gaming-laptops/razer-blade-15-v1";
   await page.goto(link);
   await page.waitFor(1000);
@@ -87,6 +88,7 @@ async function getProductDetails1(html, link) {
   models.each(function(index, model) {
     details.push({
       brand: "razer",
+      category: "gaming",
       link,
       model: $(model)
         .find("p")
@@ -113,6 +115,7 @@ async function getProductDetails4(html, link) {
   details.push({
     brand: "razer",
     link,
+    category: "gaming",
     gallery: img
   });
 
@@ -150,6 +153,7 @@ async function getProductDetails3(html, link) {
   details.push({
     brand: "razer",
     link,
+    category: "gaming",
     gallery: img,
     model: $(".sub-menu-product-title")
       .text()
@@ -202,8 +206,27 @@ async function getProductDetails2(html, link) {
   const details = [];
   const img = [];
 
+  let span = $("div.sub-menu-price-panel")
+    .find("div.cost")
+    .find("span")
+    .text();
+  let text = $("div.sub-menu-price-panel")
+    .find("div.cost")
+    .text();
+  let info = text.split(span).join("");
+
   details.push({
     brand: "razer",
+    category: "gaming",
+    model: $("h1.sub-menu-product-title")
+      .text()
+      .trim(),
+    price: info
+      .trim()
+      .replace("US$", "")
+      .replace(",", "")
+      .replace(".99", "")
+      .replace("From   "),
     link
   });
 
@@ -216,38 +239,51 @@ async function getProductDetails2(html, link) {
           .attr("src")
       );
     });
+
   const models = $("col-xs-6");
   models.each(function() {
     details.push({
       model: $(this)
-        .find("p")
+        .find("p.product-name")
         .text()
-        .trim()
+        .trim(),
+      cover: $(this)
+        .find("img")
+        .attr("src")
     });
   });
 
-  const titles = $(".container")
-    .find("div:last-child")
-    .find("div");
+  const titles = $("div.container:last-child").find(
+    "div.col-xs-12, div.compare-group"
+  );
   titles.each(function() {
-    const title = $(this).find(".col-xs-12 h2");
-    const descriptions = $(this)
-      .find(".compare-group")
-      .find(".col-xs-6");
-    descriptions.each(function(index, description) {
-      const specTitle = title.text();
-      const key = specTitle
-        .toLowerCase()
-        .trim()
-        .replace("®", "")
-        .replace("&", "")
-        .split(" ")
-        .join("_");
-      const specDescription = $(description)
-        .find("ul")
-        .text();
-      details[index][key] = specDescription.trim().replace(specTitle, "");
-    });
+    const title = $(this).find("div h2");
+    const specTitle = title.text();
+    const key = specTitle
+      .toLowerCase()
+      .trim()
+      .replace("®", "")
+      .replace("&", "")
+      .split(" ")
+      .join("_");
+    //console.log(key);
+
+    let descriptions = $(this).find("div.col-xs-12");
+    if (descriptions) {
+      descriptions.each(function(index, description) {
+        const specDescription = $(description).text();
+        details[key] = specDescription.trim().replace(specTitle, "");
+        // console.log(specDescription);
+      });
+    } else {
+      descriptions = $(this).find("div.col-xs-6");
+      descriptions.each(function(index, description) {
+        const specDescription = $(description).text();
+        details[key] = specDescription.trim().replace(specTitle, "");
+        console.log(specDescription);
+      });
+    }
   });
+  console.log(details);
   return details;
 }

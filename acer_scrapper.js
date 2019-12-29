@@ -5,38 +5,58 @@ const mongoDBUrl = require("./config/keys_dev").mongoURI;
 const Product = require("./model/product");
 
 const url = [
-  "https://us-store.acer.com/laptops/gaming?limit=25",
   "https://us-store.acer.com/laptops/ultra-thin?limit=25",
   "https://us-store.acer.com/laptops/convertible?limit=25",
   "https://us-store.acer.com/laptops/detachable?limit=25",
   "https://us-store.acer.com/laptops/chromebook?limit=25",
-  "https://us-store.acer.com/laptops/classic?limit=25"
+
+  "https://us-store.acer.com/laptops/classic?limit=25",
+  "https://us-store.acer.com/laptops/gaming?limit=25"
 ];
 
 (async () => {
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
   let obj = [];
+  let category;
   let productDetails = [];
   for (let link of url) {
+    if (link == "https://us-store.acer.com/laptops/gaming?limit=25") {
+      category = "gaming";
+    } else if (
+      link == "https://us-store.acer.com/laptops/convertible?limit=25" ||
+      "https://us-store.acer.com/laptops/detachable?limit=25"
+    ) {
+      category = "tablet";
+    } else {
+      category = "standard";
+    }
     await page.goto(link);
     await page.waitFor(1000);
     const html = await page.evaluate(() => document.body.innerHTML);
     const pageLinks = await getLinks(html);
 
+    // const pageLinks = [
+    //   //    "https://store.acer.com/en-us/laptops/gaming/nitro-7-gaming-laptop-an715-51-70tg",
+    //   "https://store.acer.com/en-us/laptops/gaming/predator-helios-300-ph315-51-71fs"
+    // ];
+
     obj = [...obj, ...pageLinks];
 
-    for (let link of obj) {
+    for (let link of pageLinks) {
       await page.goto(link);
-      await page.waitFor(1000);
+      await page.waitFor(5000);
       const html = await page.evaluate(() => document.body.innerHTML);
-      productDetails = [...productDetails, await getProductDetails(html, link)];
+      productDetails = [
+        ...productDetails,
+        await getProductDetails(html, link, category)
+      ];
     }
   }
 
   await saveDetails(productDetails);
   //console.log(productDetails);
-  // console.log("Count", productDetails.length);
+  //console.log("Count", productDetails.length);
   await browser.close();
 })();
 
@@ -52,13 +72,14 @@ async function getLinks(html) {
   return links;
 }
 
-async function getProductDetails(html, link) {
+async function getProductDetails(html, link, category) {
   const $ = cheerio.load(html);
   const detail = {
     brand: "acer",
     link,
-    category: "work",
-    model: $("span.h1")
+    category,
+    model: $("h1.page-title")
+      .find("span.base")
       .text()
       .trim()
   };
@@ -87,8 +108,12 @@ async function getProductDetails(html, link) {
   });
 
   const img = [];
-  $("img.gallery-image").each(function() {
-    img.push($(this).attr("src"));
+  $("div.fotorama__nav__frame").each(function() {
+    img.push(
+      $(this)
+        .find("img")
+        .attr("src")
+    );
   });
   detail.gallery = img;
 
@@ -117,29 +142,26 @@ async function saveDetails(productDetails) {
           processor_speed_turbo: productDetail.processor_speed_turbo
         };
         const display = {
-          screen_size: productDetail.screen_size,
-          display_screen_type: productDetail.display_screen_type,
-          display_screen_technology: productDetail.display_screen_technology,
-          screen_mode: productDetail.screen_mode,
-          screen_resolution: productDetail.screen_resolution
+          size: productDetail.screen_size,
+          type: productDetail.display_screen_type,
+          technology: productDetail.display_screen_technology,
+          mode: productDetail.screen_mode,
+          resolution: productDetail.screen_resolution
         };
         const graphics = {
-          graphics_controller_manufacturer:
-            productDetail.graphics_controller_manufacturer,
-          graphic: productDetail.graphics,
-          graphics_memory_capacity: productDetail.graphics_memory_capacity,
-          graphics_memory_technology: productDetail.graphics_memory_technology,
-          graphics_memory_accessibility:
-            productDetail.graphics_memory_accessibility
+          manufacturer: productDetail.graphics_controller_manufacturer,
+          model: productDetail.graphics,
+          capacity: productDetail.graphics_memory_capacity,
+          technology: productDetail.graphics_memory_technology,
+          accessibility: productDetail.graphics_memory_accessibility
         };
         const memory = {
-          standard_memory: productDetail.standard_memory,
-          memory_technology: productDetail.memory_technology,
-          no_of_total_memory_slots: productDetail.no_of_total_memory_slots
+          memory: productDetail.standard_memory,
+          memory_type: productDetail.memory_technology,
+          max_capacity: productDetail.no_of_total_memory_slots
         };
         const storage = {
-          ssd: productDetail.ssd,
-          hdd: productDetail.hdd
+          hdd: productDetail.total_hard_drive_capacity
         };
         const ports = {
           hdmi: productDetail.hdmi,
@@ -160,12 +182,12 @@ async function saveDetails(productDetails) {
           run_time: productDetail.maximum_battery_runtime
         };
         const speakers = {
-          no_of_speaker: productDetail.no_of_speaker,
-          speaker_output_mode: productDetail.speaker_output_mode
+          speaker: productDetail.no_of_speaker,
+          output: productDetail.speaker_output_mode
         };
         const wireless = {
-          wireless_lan_standard: productDetail.wireless_lan_standard,
-          bluetooth_standard: productDetail.bluetooth_standard
+          wifi: productDetail.wireless_lan_standard,
+          bluetooth: productDetail.bluetooth_standard
         };
         const dimensions = {
           height: productDetail.height,
@@ -177,6 +199,7 @@ async function saveDetails(productDetails) {
           category: productDetail.category,
           brand: productDetail.brand,
           name: productDetail.model,
+          cover: productDetail.gallery[0],
           ports,
           memory,
           graphics,
