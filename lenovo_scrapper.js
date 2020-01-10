@@ -9,13 +9,13 @@ const url = "https://www.lenovo.com/pk/en/laptops/c/Laptops";
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
   await page.goto(url);
-  const html = await page.evaluate(() => document.body.innerHTML);
-  const pageLinks = await getLinks(html);
+  // const html = await page.evaluate(() => document.body.innerHTML);
+  // const pageLinks = await getLinks(html);
 
-  // const pageLinks = [
-  //   "https://www.lenovo.com/pk/en/laptops/ideapad/l-series/IdeaPad-L340-17IRH-Gaming/p/88IPL301162",
-  //   "https://www.lenovo.com/pk/en/laptops/legion-laptops/legion-y-series/Lenovo-Legion-Y530-15ICH/p/88GMY501020"
-  // ];
+  const pageLinks = [
+    "https://www.lenovo.com/pk/en/laptops/ideapad/l-series/IdeaPad-L340-17IRH-Gaming/p/88IPL301162",
+    "https://www.lenovo.com/pk/en/laptops/legion-laptops/legion-y-series/Lenovo-Legion-Y530-15ICH/p/88GMY501020"
+  ];
 
   let productDetails = [];
 
@@ -33,8 +33,8 @@ const url = "https://www.lenovo.com/pk/en/laptops/c/Laptops";
     productDetails = await getGallery(gallery, link, productDetails);
   }
 
-  //console.log(productDetails);
-  await savedetails(productDetails);
+  console.log(productDetails);
+  // await savedetails(productDetails);
   await browser.close();
 })();
 
